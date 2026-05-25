@@ -1,0 +1,6 @@
+{
+  "name": "Banco Pax vobiscum",
+  "description": "Um aplicativo bancário moderno que utiliza a moeda IM, oferecendo transferências, pagamentos e acompanhamento de extrato.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

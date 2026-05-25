@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and balance information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "description": { "type": "string" },
+        "rank": { "type": "string", "enum": ["cidadão", "conselheiro", "nobre", "imperador"] },
+        "balance": { "type": "number" },
+        "salary": { "type": "number" },
+        "bannedUntil": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "rank", "balance"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial operation record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["tax", "fine", "salary", "transfer", "print"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "amount", "timestamp"]
+    },
+    "Bill": {
+      "title": "Bill",
+      "description": "Pending tax or fine to be paid by user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["tax", "fine", "fee"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "paid"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "amount", "status", "createdAt"]
+    },
+    "MarketListing": {
+      "title": "MarketListing",
+      "description": "Product or service for sale",
+      "type": "object",
+      "properties": {
+        "sellerId": { "type": "string" },
+        "sellerName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["sellerId", "sellerName", "title", "price", "active"]
+    },
+    "MarketOrder": {
+      "title": "MarketOrder",
+      "description": "Purchase record",
+      "type": "object",
+      "properties": {
+        "listingId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "sellerName": { "type": "string" },
+        "title": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "concluded", "problem"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["listingId", "buyerId", "sellerId", "amount", "status"]
+    },
+    "Loan": {
+      "title": "Loan",
+      "description": "Loan from Imperial Treasury",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "amount": { "type": "number" },
+        "totalToPay": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "interestRate": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "paid", "overdue"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "amount", "totalToPay", "status"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Educational course item",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "professorId": { "type": "string" },
+        "professorName": { "type": "string" },
+        "price": { "type": "number" },
+        "duration": { "type": "string" },
+        "content": { "type": "string" },
+        "structure": { "type": "array" },
+        "template": { "type": "string", "enum": ["freeform", "imperial_structured"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["name", "professorId", "price", "isActive"]
+    },
+    "PurchasedCourse": {
+      "title": "PurchasedCourse",
+      "description": "Record of a course purchase by a user",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "userId": { "type": "string" },
+        "purchaseDate": { "type": "string", "format": "date-time" },
+        "pricePaid": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "completionDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["courseId", "userId", "purchaseDate", "pricePaid"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Financial history"
+    },
+    "bills/{billId}": {
+      "schema": "Bill",
+      "description": "Pending payments"
+    },
+    "listings/{listingId}": {
+      "schema": "MarketListing",
+      "description": "Market marketplace items"
+    },
+    "market_orders/{orderId}": {
+      "schema": "MarketOrder",
+      "description": "Market transactions"
+    },
+    "loans/{loanId}": {
+      "schema": "Loan",
+      "description": "Treasury loans"
+    },
+    "courses/{courseId}": {
+      "schema": "Course",
+      "description": "Available courses"
+    },
+    "purchased_courses/{purchaseId}": {
+      "schema": "PurchasedCourse",
+      "description": "User course enrollments"
+    },
+    "system/treasury": {
+      "schema": "object",
+      "description": "Accumulated global taxes and fines"
+    }
+  }
+}

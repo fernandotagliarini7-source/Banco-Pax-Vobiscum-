@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isImperador() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rank == 'imperador') ||
+        request.auth.token.email == 'fernandotagliarini7@gmail.com'
+      );
+    }
+
+    function isNobreOrImperador() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rank == 'nobre' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rank == 'imperador')) ||
+        request.auth.token.email == 'fernandotagliarini7@gmail.com'
+      );
+    }
+
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.id is string &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+               data.email is string && data.email.size() <= 200 &&
+               data.rank in ['cidadão', 'conselheiro', 'nobre', 'imperador'] &&
+               data.balance is number && data.balance >= 0 && data.balance <= 1000000;
+      }
+
+      allow get, list: if isSignedIn();
+      
+      allow create: if isOwner(userId) && 
+                      isValidUser(request.resource.data) &&
+                      request.resource.data.balance == 0 &&
+                      request.resource.data.rank == 'cidadão';
+      
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data)) || isImperador();
+    }
+
+    match /bills/{billId} {
+      function isValidBill(data) {
+        return data.userId is string && 
+               data.type in ['tax', 'fine', 'fee'] &&
+               data.amount is number && data.amount >= 0 &&
+               data.status in ['pending', 'paid'];
+      }
+
+      allow read: if isSignedIn() && (isImperador() || resource.data.userId == request.auth.uid);
+      allow create: if isImperador() && isValidBill(request.resource.data);
+      allow update: if isImperador() || (
+        isSignedIn() && resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'paid' &&
+        resource.data.status == 'pending' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+      );
+      allow delete: if isImperador();
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isImperador());
+      allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isImperador());
+    }
+
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (isImperador() || resource.data.sellerId == request.auth.uid);
+    }
+
+    match /market_orders/{orderId} {
+      allow read: if isSignedIn() && (isImperador() || resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isImperador() || resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+    }
+
+    match /loans/{loanId} {
+      allow read: if isSignedIn() && (isImperador() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isImperador() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /courses/{courseId} {
+      allow read: if true;
+      allow create: if isNobreOrImperador();
+      allow update, delete: if isSignedIn() && (isImperador() || resource.data.professorId == request.auth.uid);
+    }
+
+    match /purchased_courses/{purchaseId} {
+      allow read: if isSignedIn() && (isImperador() || resource.data.userId == request.auth.uid || 
+                     exists(/databases/$(database)/documents/courses/$(resource.data.courseId)) && 
+                     get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.professorId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /system/treasury {
+      allow read: if isSignedIn();
+      allow write: if isImperador() || isSignedIn(); // isSignedIn for increments during payments
+    }
+  }
+}
